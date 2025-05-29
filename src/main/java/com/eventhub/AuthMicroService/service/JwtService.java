@@ -1,23 +1,12 @@
 package com.eventhub.AuthMicroService.service;
 
+import com.eventhub.AuthMicroService.dto.JwtTokenDTO;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Service;
+import org.springframework.http.ResponseEntity;
 
-@Service
-public class JwtService {
-
-    private static final String AUTHORIZATION_HEADER = HttpHeaders.AUTHORIZATION;
-
-    public String getTokenFromRequest(HttpServletRequest request) {
-        String token = request.getHeader(AUTHORIZATION_HEADER);
-        if (token != null && token.startsWith("Bearer")) {
-            return token.substring(7);
-        }
-        return null;
-    }
-
-    public boolean validateJWTToken(String token) {
-        return true;
-    }
+public interface JwtService {
+    String getTokenFromRequest(HttpServletRequest request);
+    boolean validateJWTToken(String token);
+    ResponseEntity<JwtTokenDTO> generateAuthToken(String username);
+    String getUsernameFromToken(String token);
 }
