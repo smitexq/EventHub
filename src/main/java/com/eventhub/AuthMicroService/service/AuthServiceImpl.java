@@ -8,6 +8,7 @@ import com.eventhub.AuthMicroService.models.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import javax.naming.AuthenticationException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,8 +16,10 @@ import java.util.UUID;
 public class AuthServiceImpl implements AuthService{
 
     private final UserRepository userRepository;
-    public AuthServiceImpl(UserRepository userRepository) {
+    private final JwtServiceImpl jwtService;
+    public AuthServiceImpl(UserRepository userRepository, JwtServiceImpl jwtService) {
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
     }
 
 
@@ -32,11 +35,19 @@ public class AuthServiceImpl implements AuthService{
         User new_user = new User(userDataDTO.getUsername(), userDataDTO.getPassword(), userDataDTO.getEmail(), uuid);
         userRepository.save(new_user);
         return String.format("Пользователь %s успешно зарегестрирован!", userDataDTO.getUsername());
+
+        //TODO: стоит добавить пользователя в контекст безопасности сразу ИЛИ лучше вызвать login
     }
 
+    //Ищем пользователя в БД по логину, сравниваем с паролем, если всё хорошо - выдаем пару токенов
     @Override
-    public ResponseEntity<JwtTokenDTO> login(LoginCredentialsDTO loginCredentialsDTO) {
-        return null;
+    public ResponseEntity<JwtTokenDTO> login(LoginCredentialsDTO loginCredentialsDTO) throws AuthenticationException {
+        Optional<User> user = userRepository.findByUsername(loginCredentialsDTO.getUsername());
+        if (user.isPresent()) {
+            //TODO: процесс выдачи токенов
+            return jwtService.generateAuthToken(loginCredentialsDTO.getUsername());
+        }
+        throw new AuthenticationException("Неверный логин или пароль!");
     }
 
 }
