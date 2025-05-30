@@ -2,6 +2,7 @@ package com.eventhub.AuthMicroService.controllers;
 
 import com.eventhub.AuthMicroService.dto.JwtTokenDTO;
 import com.eventhub.AuthMicroService.dto.LoginCredentialsDTO;
+import com.eventhub.AuthMicroService.dto.RefreshTokenDTO;
 import com.eventhub.AuthMicroService.dto.UserDataDTO;
 import com.eventhub.AuthMicroService.service.AuthServiceImpl;
 import org.springframework.http.HttpStatus;
@@ -32,5 +33,10 @@ public class AuthController {
         } catch (AuthenticationException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<JwtTokenDTO> refresh(@RequestBody RefreshTokenDTO refreshTokenDTO) throws AuthenticationException {
+        return authServiceImpl.refreshAccessToken(refreshTokenDTO);
     }
 }

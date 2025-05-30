@@ -3,6 +3,7 @@ package com.eventhub.AuthMicroService.service;
 import com.eventhub.AuthMicroService.dao.UserRepository;
 import com.eventhub.AuthMicroService.dto.JwtTokenDTO;
 import com.eventhub.AuthMicroService.dto.LoginCredentialsDTO;
+import com.eventhub.AuthMicroService.dto.RefreshTokenDTO;
 import com.eventhub.AuthMicroService.dto.UserDataDTO;
 import com.eventhub.AuthMicroService.models.User;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class AuthServiceImpl implements AuthService{
             return "Пользователь с таким именем уже существует!";
         }
 
-        UUID uuid = UUID.randomUUID();
+        UUID uuid = UUID.randomUUID();//TODO сохранение пароля в БД через кодировщик
         User new_user = new User(userDataDTO.getUsername(), userDataDTO.getPassword(), userDataDTO.getEmail(), uuid);
         userRepository.save(new_user);
         return String.format("Пользователь %s успешно зарегестрирован!", userDataDTO.getUsername());
@@ -39,15 +40,25 @@ public class AuthServiceImpl implements AuthService{
         //TODO: стоит добавить пользователя в контекст безопасности сразу ИЛИ лучше вызвать login
     }
 
-    //Ищем пользователя в БД по логину, сравниваем с паролем, если всё хорошо - выдаем пару токенов
+    //Ищем пользователя в БД по логину, выдаем пару токенов
     @Override
     public ResponseEntity<JwtTokenDTO> login(LoginCredentialsDTO loginCredentialsDTO) throws AuthenticationException {
         Optional<User> user = userRepository.findByUsername(loginCredentialsDTO.getUsername());
         if (user.isPresent()) {
-            //TODO: процесс выдачи токенов
             return jwtService.generateAuthToken(loginCredentialsDTO.getUsername());
         }
         throw new AuthenticationException("Неверный логин или пароль!");
     }
+
+    @Override
+    public ResponseEntity<JwtTokenDTO> refreshAccessToken(RefreshTokenDTO refreshTokenDTO) throws AuthenticationException {
+        String refreshToken = refreshTokenDTO.getRefreshToken();
+        if (refreshToken != null && jwtService.validateJWTToken(refreshToken)) {
+            JwtTokenDTO jwt = new JwtTokenDTO(jwtService.refreshAccessToken(refreshToken), refreshToken);
+            return ResponseEntity.ok(jwt);
+        }
+        throw new AuthenticationException("Invalid token");
+    }
+
 
 }
