@@ -3,11 +3,13 @@ package com.eventhub.AuthMicroService.security;
 import com.eventhub.AuthMicroService.dao.UserRepository;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
 
+@Service
 public class CustomUserServiceImpl implements UserDetailsService {
     private final UserRepository userRepo;
 
-    public CustomUserServiceImpl(UserRepository userRepo, CustomUserDetails userDetails) {
+    public CustomUserServiceImpl(UserRepository userRepo) {
         this.userRepo = userRepo;
     }
 
