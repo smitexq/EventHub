@@ -9,4 +9,5 @@ public interface JwtService {
     boolean validateJWTToken(String token);
     ResponseEntity<JwtTokenDTO> generateAuthToken(String username);
     String getUsernameFromToken(String token);
+    String refreshAccessToken(String refreshToken);
 }
