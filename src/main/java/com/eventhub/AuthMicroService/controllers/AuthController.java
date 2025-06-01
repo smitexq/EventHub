@@ -7,13 +7,12 @@ import com.eventhub.AuthMicroService.dto.UserDataDTO;
 import com.eventhub.AuthMicroService.service.AuthServiceImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.naming.AuthenticationException;
 
-@RestController("/auth")
+@RestController
+@RequestMapping("/auth")
 public class AuthController {
 
     private final AuthServiceImpl authServiceImpl;
@@ -38,5 +37,10 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<JwtTokenDTO> refresh(@RequestBody RefreshTokenDTO refreshTokenDTO) throws AuthenticationException {
         return authServiceImpl.refreshAccessToken(refreshTokenDTO);
+    }
+
+    @GetMapping("/main")
+    public String main_in() {
+        return "Главная страница";
     }
 }

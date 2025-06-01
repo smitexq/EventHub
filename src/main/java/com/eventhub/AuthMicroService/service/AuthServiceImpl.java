@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import javax.naming.AuthenticationException;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class AuthServiceImpl implements AuthService{
@@ -32,8 +31,8 @@ public class AuthServiceImpl implements AuthService{
             return "Пользователь с таким именем уже существует!";
         }
 
-        UUID uuid = UUID.randomUUID();//TODO сохранение пароля в БД через кодировщик
-        User new_user = new User(userDataDTO.getUsername(), userDataDTO.getPassword(), userDataDTO.getEmail(), uuid);
+        //TODO сохранение пароля в БД через кодировщик
+        User new_user = new User(userDataDTO.getUsername(), userDataDTO.getEmail(), userDataDTO.getPassword());
         userRepository.save(new_user);
         return String.format("Пользователь %s успешно зарегестрирован!", userDataDTO.getUsername());
 

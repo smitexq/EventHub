@@ -1,13 +1,11 @@
 package com.eventhub.AuthMicroService.models;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
 import java.util.UUID;
 
 @Entity
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -18,11 +16,10 @@ public class User {
 
 
     public User() {}
-    public User(String username, String email, String password, UUID uuid) {
+    public User(String username, String email, String password) {
         setUsername(username);
         setEmail(email);
         setPassword(password);
-        setId(uuid);
     }
 
 
