@@ -31,6 +31,12 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         //Получение tokena из запроса и добавление в SecurityContextHolder. Иначе -> попытка обновить токен за счет RefreshToken'a
         String token = jwtServiceImpl.getTokenFromRequest(request);
+
+        //TODO: проверка на то, куда хочет перейти пользователь, чтобы проверить, с тем ли токеном он это делает (refresh токен только для обновления access токена)
+//        System.out.println(request.getRequestURI().toString());
+//        System.out.println("/auth/refresh");
+
+
         if (token != null && jwtServiceImpl.validateJWTToken(token)) {
             String username = jwtServiceImpl.getUsernameFromToken(token);
             CustomUserDetails userDetails = userService.loadUserByUsername(username);

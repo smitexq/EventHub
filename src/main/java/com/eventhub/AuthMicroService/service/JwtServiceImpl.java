@@ -1,6 +1,7 @@
 package com.eventhub.AuthMicroService.service;
 
 import com.eventhub.AuthMicroService.dto.JwtTokenDTO;
+import com.eventhub.AuthMicroService.security.jwt.JwtAppId;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -18,8 +19,8 @@ import java.util.Date;
 
 @Service
 public class JwtServiceImpl implements JwtService {
-    @Value("{jwt.secret}")
-    private static String secret;
+    @Value("${jwt.secret}")
+    private String secret;
     private static final String AUTHORIZATION_HEADER = HttpHeaders.AUTHORIZATION;
 
     @Override
@@ -39,12 +40,18 @@ public class JwtServiceImpl implements JwtService {
                 .parseSignedClaims(token)
                 .getPayload();
 
-        return claims.getExpiration().before(new Date());
+        if(!new Date().before(claims.getExpiration())) return false;
+        if(!claims.get("session").equals(JwtAppId.getSessionId())) return false;
+
+        return true;
     }
 
     @Override
     public ResponseEntity<JwtTokenDTO> generateAuthToken(String username) {
-        JwtTokenDTO jwt = new JwtTokenDTO(generateAccessToken(username), generateRefreshToken(username));
+        JwtTokenDTO jwt = new JwtTokenDTO(
+                generateToken(username, "access", 3),
+                generateToken(username, "refresh", 15)
+        );
         return ResponseEntity.ok(jwt);
     }
 
@@ -61,25 +68,20 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String refreshAccessToken(String refreshToken) {
         String username = getUsernameFromToken(refreshToken);
-        return generateAccessToken(username);
+        return generateToken(username, "access", 3);
     }
 
 
-    private String generateAccessToken(String username) {
-        Date exp = Date.from(LocalDateTime.now().plusMinutes(3).atZone(ZoneId.systemDefault()).toInstant());
-        return Jwts.builder()
-                .subject(username)
-                .expiration(exp)
-                .signWith(getEncodedKey())
-                .compact();
-    }
 
-    private String generateRefreshToken(String username) {
-        Date exp = Date.from(LocalDateTime.now().plusMinutes(15).atZone(ZoneId.systemDefault()).toInstant());
+    private String generateToken(String username, String type, int minutes) {
+        Date exp = Date.from(LocalDateTime.now().plusMinutes(minutes).atZone(ZoneId.systemDefault()).toInstant());
         return Jwts.builder()
+//                .issuer()
                 .subject(username)
                 .expiration(exp)
                 .signWith(getEncodedKey())
+                .claim("type",type)
+                .claim("session", JwtAppId.getSessionId())
                 .compact();
     }
 
