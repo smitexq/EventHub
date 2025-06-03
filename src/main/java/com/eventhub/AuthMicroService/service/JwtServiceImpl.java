@@ -3,13 +3,13 @@ package com.eventhub.AuthMicroService.service;
 import com.eventhub.AuthMicroService.dto.JwtTokenDTO;
 import com.eventhub.AuthMicroService.security.jwt.JwtAppId;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -34,25 +34,31 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public boolean validateJWTToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getEncodedKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getEncodedKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
 
-        if(!new Date().before(claims.getExpiration())) return false;
-        if(!claims.get("session").equals(JwtAppId.getSessionId())) return false;
+            if(!new Date().before(claims.getExpiration())) return false;
+            if(!claims.get("session").equals(JwtAppId.getSessionId())) return false;
 
-        return true;
+            return true; //Токен валидный
+        } catch (ExpiredJwtException e) {
+            //TODO: логирование
+            System.out.println("Истек срок действия токена!");
+        }
+        return false;
     }
 
     @Override
-    public ResponseEntity<JwtTokenDTO> generateAuthToken(String username) {
+    public JwtTokenDTO generateAuthToken(String username) {
         JwtTokenDTO jwt = new JwtTokenDTO(
-                generateToken(username, "access", 3),
+                generateToken(username, "access", 1),
                 generateToken(username, "refresh", 15)
         );
-        return ResponseEntity.ok(jwt);
+        return jwt;
     }
 
     @Override
@@ -68,7 +74,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String refreshAccessToken(String refreshToken) {
         String username = getUsernameFromToken(refreshToken);
-        return generateToken(username, "access", 3);
+        return generateToken(username, "access", 1);
     }
 
 
@@ -80,7 +86,7 @@ public class JwtServiceImpl implements JwtService {
                 .subject(username)
                 .expiration(exp)
                 .signWith(getEncodedKey())
-                .claim("type",type)
+                .claim("type", type)
                 .claim("session", JwtAppId.getSessionId())
                 .compact();
     }

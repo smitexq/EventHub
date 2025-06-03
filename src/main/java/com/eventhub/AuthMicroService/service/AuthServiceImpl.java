@@ -1,15 +1,16 @@
 package com.eventhub.AuthMicroService.service;
 
 import com.eventhub.AuthMicroService.dao.UserRepository;
-import com.eventhub.AuthMicroService.dto.JwtTokenDTO;
-import com.eventhub.AuthMicroService.dto.LoginCredentialsDTO;
-import com.eventhub.AuthMicroService.dto.RefreshTokenDTO;
-import com.eventhub.AuthMicroService.dto.UserDataDTO;
+import com.eventhub.AuthMicroService.dto.*;
 import com.eventhub.AuthMicroService.models.User;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.naming.AuthenticationException;
+import java.util.Arrays;
 import java.util.Optional;
 
 @Service
@@ -41,20 +42,32 @@ public class AuthServiceImpl implements AuthService{
 
     //Ищем пользователя в БД по логину, выдаем пару токенов
     @Override
-    public ResponseEntity<JwtTokenDTO> login(LoginCredentialsDTO loginCredentialsDTO) throws AuthenticationException {
+    public AccessTokenDTO login(LoginCredentialsDTO loginCredentialsDTO, HttpServletResponse response) throws AuthenticationException {
         Optional<User> user = userRepository.findByUsername(loginCredentialsDTO.getUsername());
         if (user.isPresent()) {
-            return jwtService.generateAuthToken(loginCredentialsDTO.getUsername());
+            JwtTokenDTO jwt = jwtService.generateAuthToken(loginCredentialsDTO.getUsername());
+
+            Cookie cook = new Cookie("RefreshToken", jwt.getRefreshToken());
+            cook.setHttpOnly(true);
+//            cook.setMaxAge();
+            response.addCookie(cook);
+
+            return new AccessTokenDTO(jwt.getAccessToken());
         }
         throw new AuthenticationException("Неверный логин или пароль!");
     }
 
     @Override
-    public ResponseEntity<JwtTokenDTO> refreshAccessToken(RefreshTokenDTO refreshTokenDTO) throws AuthenticationException {
-        String refreshToken = refreshTokenDTO.getRefreshToken();
+    public AccessTokenDTO refreshAccessToken(HttpServletRequest request) throws AuthenticationException {
+
+        String refreshToken = Arrays.stream(request.getCookies())
+                .filter(x -> x.getName().equals("RefreshToken"))
+                .findFirst()
+                .map(cook -> cook.getValue())
+                .orElse(null);
+
         if (refreshToken != null && jwtService.validateJWTToken(refreshToken)) {
-            JwtTokenDTO jwt = new JwtTokenDTO(jwtService.refreshAccessToken(refreshToken), refreshToken);
-            return ResponseEntity.ok(jwt);
+            return new AccessTokenDTO(jwtService.refreshAccessToken(refreshToken));
         }
         throw new AuthenticationException("Invalid token");
     }
