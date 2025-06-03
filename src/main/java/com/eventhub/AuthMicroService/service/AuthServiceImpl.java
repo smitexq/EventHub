@@ -1,12 +1,15 @@
 package com.eventhub.AuthMicroService.service;
 
 import com.eventhub.AuthMicroService.dao.UserRepository;
-import com.eventhub.AuthMicroService.dto.*;
+import com.eventhub.AuthMicroService.dto.AccessTokenDTO;
+import com.eventhub.AuthMicroService.dto.JwtTokenDTO;
+import com.eventhub.AuthMicroService.dto.LoginCredentialsDTO;
+import com.eventhub.AuthMicroService.dto.UserDataDTO;
 import com.eventhub.AuthMicroService.models.User;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.naming.AuthenticationException;
@@ -18,9 +21,11 @@ public class AuthServiceImpl implements AuthService{
 
     private final UserRepository userRepository;
     private final JwtServiceImpl jwtService;
-    public AuthServiceImpl(UserRepository userRepository, JwtServiceImpl jwtService) {
+    private final PasswordEncoder passwordEncoder;
+    public AuthServiceImpl(UserRepository userRepository, JwtServiceImpl jwtService, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
     }
 
 
@@ -32,27 +37,32 @@ public class AuthServiceImpl implements AuthService{
             return "Пользователь с таким именем уже существует!";
         }
 
-        //TODO сохранение пароля в БД через кодировщик
-        User new_user = new User(userDataDTO.getUsername(), userDataDTO.getEmail(), userDataDTO.getPassword());
+        User new_user = new User(
+                userDataDTO.getUsername(),
+                userDataDTO.getEmail(),
+                passwordEncoder.encode(userDataDTO.getPassword())
+        );
         userRepository.save(new_user);
-        return String.format("Пользователь %s успешно зарегестрирован!", userDataDTO.getUsername());
 
         //TODO: стоит добавить пользователя в контекст безопасности сразу ИЛИ лучше вызвать login
+
+        return String.format("Пользователь %s успешно зарегестрирован!", userDataDTO.getUsername());
+
     }
 
     //Ищем пользователя в БД по логину, выдаем пару токенов
     @Override
     public AccessTokenDTO login(LoginCredentialsDTO loginCredentialsDTO, HttpServletResponse response) throws AuthenticationException {
         Optional<User> user = userRepository.findByUsername(loginCredentialsDTO.getUsername());
+
         if (user.isPresent()) {
-            JwtTokenDTO jwt = jwtService.generateAuthToken(loginCredentialsDTO.getUsername());
+            User current_user = user.get(); //Сравнение паролей
+            if (passwordEncoder.matches(loginCredentialsDTO.getPassword(), current_user.getPassword())) {
 
-            Cookie cook = new Cookie("RefreshToken", jwt.getRefreshToken());
-            cook.setHttpOnly(true);
-//            cook.setMaxAge();
-            response.addCookie(cook);
+                return new AccessTokenDTO(setAuth(response, loginCredentialsDTO.getUsername()));
 
-            return new AccessTokenDTO(jwt.getAccessToken());
+//                return new AccessTokenDTO(jwt.getAccessToken());
+            }
         }
         throw new AuthenticationException("Неверный логин или пароль!");
     }
@@ -73,4 +83,17 @@ public class AuthServiceImpl implements AuthService{
     }
 
 
+    /**
+    Возвращает Access токен и кладет Refresh в куки
+     **/
+    private String setAuth(HttpServletResponse response, String username) {
+        JwtTokenDTO jwt = jwtService.generateAuthToken(username);
+
+        Cookie cook = new Cookie("RefreshToken", jwt.getRefreshToken());
+        cook.setHttpOnly(true);
+        //            cook.setMaxAge();
+        response.addCookie(cook);
+
+        return jwt.getAccessToken();
+    }
 }
