@@ -2,7 +2,6 @@ package com.eventhub.AuthMicroService.controllers;
 
 import com.eventhub.AuthMicroService.dto.AccessTokenDTO;
 import com.eventhub.AuthMicroService.dto.LoginCredentialsDTO;
-import com.eventhub.AuthMicroService.dto.RefreshTokenDTO;
 import com.eventhub.AuthMicroService.dto.UserDataDTO;
 import com.eventhub.AuthMicroService.service.AuthServiceImpl;
 import jakarta.servlet.http.Cookie;

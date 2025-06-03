@@ -58,10 +58,7 @@ public class AuthServiceImpl implements AuthService{
         if (user.isPresent()) {
             User current_user = user.get(); //Сравнение паролей
             if (passwordEncoder.matches(loginCredentialsDTO.getPassword(), current_user.getPassword())) {
-
                 return new AccessTokenDTO(setAuth(response, loginCredentialsDTO.getUsername()));
-
-//                return new AccessTokenDTO(jwt.getAccessToken());
             }
         }
         throw new AuthenticationException("Неверный логин или пароль!");
