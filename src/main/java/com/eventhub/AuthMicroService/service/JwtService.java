@@ -8,5 +8,6 @@ public interface JwtService {
     boolean validateJWTToken(String token);
     JwtTokenDTO generateAuthToken(String username);
     String getUsernameFromToken(String token);
+    String getTokenType(String token);
     String refreshAccessToken(String refreshToken);
 }

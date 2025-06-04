@@ -63,12 +63,15 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String getUsernameFromToken(String token) {
-        return Jwts.parser()
-                .verifyWith(getEncodedKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
+        return getPayload(token)
                 .getSubject();
+    }
+
+    @Override
+    public String getTokenType(String token) {
+        return getPayload(token)
+                .get("type")
+                .toString();
     }
 
     @Override
@@ -76,6 +79,7 @@ public class JwtServiceImpl implements JwtService {
         String username = getUsernameFromToken(refreshToken);
         return generateToken(username, "access", 1);
     }
+
 
 
 
@@ -94,5 +98,13 @@ public class JwtServiceImpl implements JwtService {
     private SecretKey getEncodedKey() {
         byte[] key = Decoders.BASE64.decode(secret);
         return Keys.hmacShaKeyFor(key);
+    }
+
+    private Claims getPayload(String token) {
+        return Jwts.parser()
+                .verifyWith(getEncodedKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

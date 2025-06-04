@@ -3,6 +3,7 @@ package com.eventhub.AuthMicroService.security.jwt;
 import com.eventhub.AuthMicroService.security.CustomUserDetails;
 import com.eventhub.AuthMicroService.security.CustomUserServiceImpl;
 import com.eventhub.AuthMicroService.service.JwtServiceImpl;
+import com.eventhub.AuthMicroService.tools.PathTool;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,26 +30,40 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        //Получение tokena из запроса и добавление в SecurityContextHolder. Иначе -> попытка обновить токен за счет RefreshToken'a
+        //Получение tokena из запроса и добавление в SecurityContextHolder
         String token = jwtServiceImpl.getTokenFromRequest(request);
 
-        //TODO: проверка на то, куда хочет перейти пользователь, чтобы проверить, с тем ли токеном он это делает (refresh токен только для обновления access токена)
-//        System.out.println(request.getRequestURI().toString());
-//        System.out.println("/auth/refresh");
-
-
         if (token != null && jwtServiceImpl.validateJWTToken(token)) {
-            String username = jwtServiceImpl.getUsernameFromToken(token);
-            CustomUserDetails userDetails = userService.loadUserByUsername(username);
+            if (isCorrectPath(request, token)) { //Проверка типа токена
+                String username = jwtServiceImpl.getUsernameFromToken(token);
+                CustomUserDetails userDetails = userService.loadUserByUsername(username);
 
-            Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         }
-//        else if (!jwtServiceImpl.validateJWTToken(token)) {//попытка обновить токен
-//            request.getCookies();
-//        }
-
         filterChain.doFilter(request, response);
+    }
+
+
+    /**
+     * Проверяет подходит ли тип токена для данного энд-поинта.
+     * Точка регистрации, логина и обновления доступны без jwt токена
+     * @param request - запрос из которого берется путь
+     * @param token
+     * @return возвращает true, если подходит, false иначе
+     */
+    private boolean isCorrectPath(HttpServletRequest request, String token) {
+        String path = request.getRequestURI(); // "/auth/refresh"
+
+        //К трем энд поинтам есть доступ без ключей
+        if (path.equals(PathTool.REGISTRATION.toString())) return true;
+        if (path.equals(PathTool.LOGIN.toString())) return true;
+        if (path.equals(PathTool.REFRESH.toString())) return true;
+
+        //Остаются другие точки, к которым ключ должен иметь type = access
+        String type = jwtServiceImpl.getTokenType(token);
+        return type.equals("access");
     }
 }
