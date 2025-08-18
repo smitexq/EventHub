@@ -9,8 +9,11 @@ import com.eventhub.AuthMicroService.models.User;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import javax.naming.AuthenticationException;
 import java.util.Arrays;
@@ -43,6 +46,22 @@ public class AuthServiceImpl implements AuthService{
                 passwordEncoder.encode(userDataDTO.getPassword())
         );
         userRepository.save(new_user);
+
+        //Запрос в другой микросервис
+        WebClient webClient = WebClient.builder().baseUrl("http://localhost:8080/").build();
+
+        webClient.post()
+                .uri("/profile-service/test")
+                .retrieve()
+                .toBodilessEntity()
+                .subscribe();
+
+//        Mono<ResponseEntity<Profile>> response = webClient.get()
+//                .uri("/auth/main")
+//                .retrieve()
+//                .toEntity(Profile.class);
+//
+//        System.out.println(response.block().getBody());
 
         //TODO: стоит добавить пользователя в контекст безопасности сразу ИЛИ лучше вызвать login
 
