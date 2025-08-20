@@ -2,9 +2,19 @@ package com.eventhub.AuthMicroService.dto;
 
 
 public class UserDataDTO {
+    private int age;
     private String username;
     private String password;
     private String email;
+
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
 
     public String getUsername() {
         return username;

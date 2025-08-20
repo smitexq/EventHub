@@ -5,6 +5,7 @@ import com.eventhub.AuthMicroService.dto.AccessTokenDTO;
 import com.eventhub.AuthMicroService.dto.JwtTokenDTO;
 import com.eventhub.AuthMicroService.dto.LoginCredentialsDTO;
 import com.eventhub.AuthMicroService.dto.UserDataDTO;
+import com.eventhub.AuthMicroService.dto.to_profile.NewProfile;
 import com.eventhub.AuthMicroService.models.User;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,11 +28,14 @@ public class AuthServiceImpl implements AuthService{
     private final PasswordEncoder passwordEncoder;
     private final WebClient webClient;
 
-    public AuthServiceImpl(UserRepository userRepository, JwtServiceImpl jwtService, PasswordEncoder passwordEncoder, WebClient gateWayWebClient) {
+    public AuthServiceImpl(UserRepository userRepository,
+                           JwtServiceImpl jwtService,
+                           PasswordEncoder passwordEncoder,
+                           WebClient gateWayWebClient) {
+
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
-
         this.webClient = gateWayWebClient;
     }
 
@@ -47,13 +51,22 @@ public class AuthServiceImpl implements AuthService{
         User new_user = new User(
                 userDataDTO.getUsername(),
                 userDataDTO.getEmail(),
+                userDataDTO.getAge(),
                 passwordEncoder.encode(userDataDTO.getPassword())
         );
         userRepository.save(new_user);
 
 
+
         webClient.post()
-                .uri("/profile-service/test")
+                .uri("/profile-service/add_profile")
+                .bodyValue(
+                        new NewProfile(
+                                new_user.getId(),
+                                new_user.getUsername(),
+                                new_user.getAge()
+                                )
+                )
                 .retrieve()
                 .toBodilessEntity()
                 .subscribe();
