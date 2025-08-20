@@ -25,10 +25,14 @@ public class AuthServiceImpl implements AuthService{
     private final UserRepository userRepository;
     private final JwtServiceImpl jwtService;
     private final PasswordEncoder passwordEncoder;
-    public AuthServiceImpl(UserRepository userRepository, JwtServiceImpl jwtService, PasswordEncoder passwordEncoder) {
+    private final WebClient webClient;
+
+    public AuthServiceImpl(UserRepository userRepository, JwtServiceImpl jwtService, PasswordEncoder passwordEncoder, WebClient gateWayWebClient) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
+
+        this.webClient = gateWayWebClient;
     }
 
 
@@ -47,8 +51,6 @@ public class AuthServiceImpl implements AuthService{
         );
         userRepository.save(new_user);
 
-        //Запрос в другой микросервис
-        WebClient webClient = WebClient.builder().baseUrl("http://localhost:8080/").build();
 
         webClient.post()
                 .uri("/profile-service/test")
