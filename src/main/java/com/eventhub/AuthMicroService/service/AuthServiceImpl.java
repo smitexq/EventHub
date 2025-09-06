@@ -1,5 +1,6 @@
 package com.eventhub.AuthMicroService.service;
 
+import com.eventhub.AuthMicroService.dao.InMemoryUserDAO;
 import com.eventhub.AuthMicroService.dao.UserRepository;
 import com.eventhub.AuthMicroService.dto.AccessTokenDTO;
 import com.eventhub.AuthMicroService.dto.JwtTokenDTO;
@@ -27,16 +28,18 @@ public class AuthServiceImpl implements AuthService{
     private final JwtServiceImpl jwtService;
     private final PasswordEncoder passwordEncoder;
     private final WebClient webClient;
+    private final InMemoryUserDAO userDAO;
 
     public AuthServiceImpl(UserRepository userRepository,
                            JwtServiceImpl jwtService,
                            PasswordEncoder passwordEncoder,
-                           WebClient gateWayWebClient) {
+                           WebClient gateWayWebClient, InMemoryUserDAO userDAO) {
 
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.webClient = gateWayWebClient;
+        this.userDAO = userDAO;
     }
 
 
@@ -54,10 +57,14 @@ public class AuthServiceImpl implements AuthService{
                 userDataDTO.getAge(),
                 passwordEncoder.encode(userDataDTO.getPassword())
         );
+
+        userDAO.addUser(new_user);
+
+
         userRepository.save(new_user);
 
 
-
+        //Создание профиля
         webClient.post()
                 .uri("/profile-service/add_profile")
                 .bodyValue(
@@ -71,12 +78,6 @@ public class AuthServiceImpl implements AuthService{
                 .toBodilessEntity()
                 .subscribe();
 
-//        Mono<ResponseEntity<Profile>> response = webClient.get()
-//                .uri("/auth/main")
-//                .retrieve()
-//                .toEntity(Profile.class);
-//
-//        System.out.println(response.block().getBody());
 
         //TODO: стоит добавить пользователя в контекст безопасности сразу ИЛИ лучше вызвать login
 
@@ -122,6 +123,7 @@ public class AuthServiceImpl implements AuthService{
 
         Cookie cook = new Cookie("RefreshToken", jwt.getRefreshToken());
         cook.setHttpOnly(true);
+        //            cook.setSecure();
         //            cook.setMaxAge();
         response.addCookie(cook);
 

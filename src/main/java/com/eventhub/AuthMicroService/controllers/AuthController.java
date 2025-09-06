@@ -7,6 +7,7 @@ import com.eventhub.AuthMicroService.service.AuthServiceImpl;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.http.HttpResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,10 +23,20 @@ public class AuthController {
         this.authServiceImpl = authServiceImpl;
     }
 
+
+
     @PostMapping("/sign-up")
-    public String sign_up(@RequestBody UserDataDTO userDataDTO) {
+    public String sign_up(@RequestBody UserDataDTO userDataDTO, HttpServletResponse response) {
+//        response.set
+
         return authServiceImpl.addUser(userDataDTO);
     }
+
+    @PostMapping("/activate")
+    public ResponseEntity<?> activateUser() {
+        return ResponseEntity.ok("1");
+    }
+
 
     @PostMapping("/sign-in")
     public ResponseEntity<AccessTokenDTO> sign_in(HttpServletResponse response, @RequestBody LoginCredentialsDTO loginCredentialsDTO) {
