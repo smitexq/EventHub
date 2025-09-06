@@ -1,6 +1,7 @@
 package com.eventhub.AuthMicroService.controllers;
 
 import com.eventhub.AuthMicroService.dto.AccessTokenDTO;
+import com.eventhub.AuthMicroService.dto.ActivationCodeDTO;
 import com.eventhub.AuthMicroService.dto.LoginCredentialsDTO;
 import com.eventhub.AuthMicroService.dto.UserDataDTO;
 import com.eventhub.AuthMicroService.service.AuthServiceImpl;
@@ -27,14 +28,12 @@ public class AuthController {
 
     @PostMapping("/sign-up")
     public String sign_up(@RequestBody UserDataDTO userDataDTO, HttpServletResponse response) {
-//        response.set
-
-        return authServiceImpl.addUser(userDataDTO);
+        return authServiceImpl.addUser(userDataDTO, response);
     }
 
     @PostMapping("/activate")
-    public ResponseEntity<?> activateUser() {
-        return ResponseEntity.ok("1");
+    public ResponseEntity<String> activateUser(@RequestBody ActivationCodeDTO activationCodeDTO, HttpServletRequest request) {
+        return ResponseEntity.ok(authServiceImpl.activateUser(activationCodeDTO, request));
     }
 
 

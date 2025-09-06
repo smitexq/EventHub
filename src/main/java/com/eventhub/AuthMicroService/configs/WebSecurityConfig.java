@@ -4,6 +4,7 @@ import com.eventhub.AuthMicroService.security.jwt.JwtAppId;
 import com.eventhub.AuthMicroService.security.jwt.JwtFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -17,6 +18,7 @@ import java.util.UUID;
 
 @Configuration
 @EnableWebSecurity
+@EnableScheduling
 public class WebSecurityConfig {
     private final JwtFilter jwtFilter;
 
@@ -29,7 +31,12 @@ public class WebSecurityConfig {
         http
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/sign-up","/auth/sign-in","/auth/refresh").permitAll()
+                .authorizeHttpRequests(auth -> auth.requestMatchers(
+                        "/auth/sign-up",
+                                "/auth/sign-in",
+                                "/auth/refresh",
+                                "/auth/activate"
+                        ).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

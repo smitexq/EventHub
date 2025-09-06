@@ -2,24 +2,18 @@ package com.eventhub.AuthMicroService.service;
 
 import com.eventhub.AuthMicroService.dao.InMemoryUserDAO;
 import com.eventhub.AuthMicroService.dao.UserRepository;
-import com.eventhub.AuthMicroService.dto.AccessTokenDTO;
-import com.eventhub.AuthMicroService.dto.JwtTokenDTO;
-import com.eventhub.AuthMicroService.dto.LoginCredentialsDTO;
-import com.eventhub.AuthMicroService.dto.UserDataDTO;
+import com.eventhub.AuthMicroService.dto.*;
 import com.eventhub.AuthMicroService.dto.to_profile.NewProfile;
 import com.eventhub.AuthMicroService.models.User;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import javax.naming.AuthenticationException;
-import java.util.Arrays;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class AuthServiceImpl implements AuthService{
@@ -44,8 +38,9 @@ public class AuthServiceImpl implements AuthService{
 
 
     @Override
-    public String addUser(UserDataDTO userDataDTO) {
+    public String addUser(UserDataDTO userDataDTO, HttpServletResponse response) {
         //Проверка на то, что пользователь еще НЕ существует
+        //TODO: нужно еще проверить в хэш мапе
         Optional<User> user = userRepository.findByUsername(userDataDTO.getUsername());
         if (user.isPresent()) {
             return "Пользователь с таким именем уже существует!";
@@ -58,10 +53,43 @@ public class AuthServiceImpl implements AuthService{
                 passwordEncoder.encode(userDataDTO.getPassword())
         );
 
-        userDAO.addUser(new_user);
+        ToActivateUser activateUser = userDAO.addUser(new_user);
+        webClient.post()
+                .uri("/mail-service/send")
+                .bodyValue(Map.of(
+                        "recipients", List.of(new_user.getEmail()),
+                        "subject", "Код активации для EventHub",
+                        "body", String.format("Ваш код: %s", activateUser.activation_code())
+                        )
+                )
+                .retrieve()
+                .toBodilessEntity()
+                .subscribe(success -> {},
+                        error -> System.err.println("Ошибка отправки письма: " + error.getMessage())
+                );
 
+        Cookie cookie = new Cookie("UserTemporaryUUID", activateUser.id().toString());
+        cookie.setHttpOnly(true);
+//        cookie.setMaxAge(5);
+        response.addCookie(cookie);
 
-        userRepository.save(new_user);
+        return String.format("Проверьте почту %s, чтобы активировать пользователя %s", userDataDTO.getEmail(), userDataDTO.getUsername());
+    }
+
+    @Override
+    public String activateUser(ActivationCodeDTO activationCodeDTO, HttpServletRequest request) {
+        String user_uuid = Arrays.stream(request.getCookies())
+                        .filter(cookie -> cookie.getName().equals("UserTemporaryUUID"))
+                        .findFirst()
+                        .map(cookie -> cookie.getValue())
+                        .orElse(null);
+
+        if (user_uuid == null || !userDAO.isCodeCorrectByUserUUID(UUID.fromString(user_uuid), activationCodeDTO.getActivation_code())) {
+            return "Неверный код или время активации закончилось!";
+        }
+
+        User user = userDAO.findByUUID(UUID.fromString(user_uuid));
+        userRepository.save(user);
 
 
         //Создание профиля
@@ -69,21 +97,23 @@ public class AuthServiceImpl implements AuthService{
                 .uri("/profile-service/add_profile")
                 .bodyValue(
                         new NewProfile(
-                                new_user.getId(),
-                                new_user.getUsername(),
-                                new_user.getAge()
+                                user.getId(),
+                                user.getUsername(),
+                                user.getAge()
                                 )
                 )
                 .retrieve()
                 .toBodilessEntity()
-                .subscribe();
+                .subscribe(success -> {},
+                        error -> System.err.println("Ошибка создания профиля: " + error.getMessage())
+                );
 
 
         //TODO: стоит добавить пользователя в контекст безопасности сразу ИЛИ лучше вызвать login
 
-        return String.format("Пользователь %s успешно зарегестрирован!", userDataDTO.getUsername());
-
+        return String.format("Пользователь %s успешно зарегестрирован!", user.getUsername());
     }
+
 
     //Ищем пользователя в БД по логину, выдаем пару токенов
     @Override
