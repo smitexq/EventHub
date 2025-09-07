@@ -39,8 +39,10 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     public String addUser(UserDataDTO userDataDTO, HttpServletResponse response) {
-        //Проверка на то, что пользователь еще НЕ существует
-        //TODO: нужно еще проверить в хэш мапе
+        //Если пользователь уже находится в момент активации
+        if (userDAO.ifUserExist(userDataDTO.getUsername())) return "Проверьте свою почту для активации аккаунта";
+
+        //Проверка на то, что пользователь еще НЕ существует в базе данных
         Optional<User> user = userRepository.findByUsername(userDataDTO.getUsername());
         if (user.isPresent()) {
             return "Пользователь с таким именем уже существует!";
@@ -70,7 +72,8 @@ public class AuthServiceImpl implements AuthService{
 
         Cookie cookie = new Cookie("UserTemporaryUUID", activateUser.id().toString());
         cookie.setHttpOnly(true);
-//        cookie.setMaxAge(5);
+        //длительность 5 минут
+        cookie.setMaxAge(5*60);
         response.addCookie(cookie);
 
         return String.format("Проверьте почту %s, чтобы активировать пользователя %s", userDataDTO.getEmail(), userDataDTO.getUsername());
@@ -84,15 +87,15 @@ public class AuthServiceImpl implements AuthService{
                         .map(cookie -> cookie.getValue())
                         .orElse(null);
 
-        if (user_uuid == null || !userDAO.isCodeCorrectByUserUUID(UUID.fromString(user_uuid), activationCodeDTO.getActivation_code())) {
+        if (user_uuid == null || !userDAO.isCodeCorrectByUsername(UUID.fromString(user_uuid), activationCodeDTO.getActivation_code())) {
             return "Неверный код или время активации закончилось!";
         }
 
-        User user = userDAO.findByUUID(UUID.fromString(user_uuid));
+        User user = userDAO.findByUUID(UUID.fromString(user_uuid), true);
         userRepository.save(user);
 
 
-        //Создание профиля
+        //запрос на создание профиля
         webClient.post()
                 .uri("/profile-service/add_profile")
                 .bodyValue(
@@ -107,9 +110,6 @@ public class AuthServiceImpl implements AuthService{
                 .subscribe(success -> {},
                         error -> System.err.println("Ошибка создания профиля: " + error.getMessage())
                 );
-
-
-        //TODO: стоит добавить пользователя в контекст безопасности сразу ИЛИ лучше вызвать login
 
         return String.format("Пользователь %s успешно зарегестрирован!", user.getUsername());
     }

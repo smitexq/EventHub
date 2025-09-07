@@ -55,15 +55,21 @@ public class InMemoryUserDAO {
     }
 
 
-    public boolean isCodeCorrectByUserUUID(UUID user_uuid, String input_code) {
+    public boolean isCodeCorrectByUsername(UUID user_uuid, String input_code) {
         var user_info = USERS.get(user_uuid);
         return user_info != null && user_info.activation_code.equals(input_code);
     }
 
 
-    public User findByUUID(UUID user_uuid) {
+    public User findByUUID(UUID user_uuid, boolean thenDelete) {
+        if (thenDelete) {
+            USERS.remove(user_uuid);
+        }
         return USERS.get(user_uuid).user;
-        //TODO: еще удалить из хэшмапы
+    }
+
+    public boolean ifUserExist(String username) {
+        return USERS.get(UUID.nameUUIDFromBytes(username.getBytes())) != null;
     }
 
 
