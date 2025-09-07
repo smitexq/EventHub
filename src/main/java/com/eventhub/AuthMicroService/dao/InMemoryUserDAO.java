@@ -40,7 +40,7 @@ public class InMemoryUserDAO {
 
         stringBuilder.setLength(0);
         for (byte x=0; x<CODE_LENGTH; x++) {
-            int index = random.nextInt(0, CHARS.length() + 1);
+            int index = random.nextInt(0, CHARS.length());
             stringBuilder.append(CHARS.charAt(index));
         }
 
@@ -62,10 +62,11 @@ public class InMemoryUserDAO {
 
 
     public User findByUUID(UUID user_uuid, boolean thenDelete) {
+        User user = USERS.get(user_uuid).user;
         if (thenDelete) {
             USERS.remove(user_uuid);
         }
-        return USERS.get(user_uuid).user;
+        return user;
     }
 
     public boolean ifUserExist(String username) {
