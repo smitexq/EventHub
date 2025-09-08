@@ -43,6 +43,7 @@ public class InMemoryUserDAO {
             int index = random.nextInt(0, CHARS.length());
             stringBuilder.append(CHARS.charAt(index));
         }
+//        stringBuilder.append("3HF5L6");
 
         USERS.put(uuid, new UserInfo(
                 user,
@@ -74,8 +75,8 @@ public class InMemoryUserDAO {
     }
 
 
-    @Scheduled(fixedDelay = 15000)
+    @Scheduled(fixedDelay = 30*1000)
     public void test() {
-        System.out.println(USERS.toString());
+//        System.out.println(USERS.toString());
     }
 }

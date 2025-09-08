@@ -102,6 +102,7 @@ public class AuthServiceImpl implements AuthService{
                         new NewProfile(
                                 user.getId(),
                                 user.getUsername(),
+                                user.getEmail(),
                                 user.getAge()
                                 )
                 )

@@ -1,18 +1,18 @@
 package com.eventhub.AuthMicroService.dto.to_profile;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.UUID;
 
 public class NewProfile {
     private UUID id;
     private String username;
+    private String email;
     private int age;
 
 
-    public NewProfile(UUID id, String username, int age) {
+    public NewProfile(UUID id, String username, String email, int age) {
         this.age = age;
         this.username = username;
+        this.email = email;
         this.id = id;
     }
 
@@ -22,6 +22,10 @@ public class NewProfile {
 
     public String getUsername() {
         return username;
+    }
+
+    public String getEmail() {
+        return email;
     }
 
     public int getAge() {
